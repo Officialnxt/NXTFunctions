@@ -1,18 +1,20 @@
 <?php
 
-function calculate($mathString) {
+function calculate($problem) {
 	if($mathString == "pi"){
-		return pi();
+		return M_PI;
 	}
 	
-	$mathString = trim($mathString);
-	$mathString = ereg_replace ('[^0-9\+-\*\/\(\)]', '', $mathString);
-	$compute = create_function("", "return (" . $mathString . ");" );
+	$problem = trim($problem);
+	$problem = ereg_replace ('[^0-9\+-\*\/\(\)]', '', $problem;
+	$compute = create_function("", "return (" . $problem . ");" );
 	return 0 + $compute();
 
 }
 
-function metersToFeet($meters, $echo = true){
+// Metric: Meters
+
+function meterstofeet($meters, $echo = true){
 	$m = $meters;
 	$InFeet = $m*3.2808399;
 	$Feet = (int)$InFeet;
@@ -26,7 +28,7 @@ function metersToFeet($meters, $echo = true){
 	}
 }
 
-function metersToInches($meters, $echo = true){
+function meterstoinches($meters, $echo = true){
 	$m = $meters;
 	$Inches = $m*39.3701;
 	$data = $Inches;
@@ -38,7 +40,7 @@ function metersToInches($meters, $echo = true){
 	}
 }
 
-function metersToYards($meters, $echo = true){
+function meterstoyards($meters, $echo = true){
 	$m = $meters;
 	$Yards = $m*1.09361;
 	$data = $Yards;
@@ -51,7 +53,7 @@ function metersToYards($meters, $echo = true){
 }
 
 
-function metersToCentimeters($meters, $echo = true){
+function meterstocentimeters($meters, $echo = true){
 	$m = $meters;
 	$Centi = $m*100;
 	$data = $Centi;
@@ -63,7 +65,7 @@ function metersToCentimeters($meters, $echo = true){
 	}
 }
 
-function metersToMiliimeters($meters, $echo = true){
+function meterstomiliimeters($meters, $echo = true){
 	$m = $meters;
 	$Mili = $m*1000;
 	$data = $Mili;
@@ -75,7 +77,7 @@ function metersToMiliimeters($meters, $echo = true){
 	}
 }
 
-function metersToDecimeters($meters, $echo = true){
+function meterstodecimeters($meters, $echo = true){
 	$m = $meters;
 	$Deci = $m*10;
 	$data = $Deci;
@@ -87,7 +89,7 @@ function metersToDecimeters($meters, $echo = true){
 	}
 }
 
-function metersToDekameters($meters, $echo = true){
+function meterstodekameters($meters, $echo = true){
 	$m = $meters;
 	$Deka = $m*0.1;
 	$data = $Deka;
@@ -99,7 +101,7 @@ function metersToDekameters($meters, $echo = true){
 	}
 }
 
-function metersToHectometers($meters, $echo = true){
+function meterstohectometers($meters, $echo = true){
 	$m = $meters;
 	$Hecto = $m*0.01;
 	$data = $Hecto;
@@ -111,10 +113,36 @@ function metersToHectometers($meters, $echo = true){
 	}
 }
 
-function metersToKilometers($meters, $echo = true){
+function meterstokilometers($meters, $echo = true){
 	$m = $meters;
 	$Kilo = $m*0.1;
 	$data = $Kilo;
+	if($echo == true)
+	{
+		echo $data;
+	} else {
+		return $data;
+	}
+}
+
+//Metric: Grams
+
+function gramstopounds($grams, $echo = true){
+	$g = $grams;
+	$pounds = $m*0.00220462;
+	$data = $pounds;
+	if($echo == true)
+	{
+		echo $data;
+	} else {
+		return $data;
+	}
+}
+
+function gramstoounce($grams, $echo = true){
+	$g = $grams;
+	$pounds = $m*0.035274;
+	$data = $pounds;
 	if($echo == true)
 	{
 		echo $data;
