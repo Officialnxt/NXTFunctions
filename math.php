@@ -1,18 +1,13 @@
 <?php
 
-function calculate($problem) {
-	if($mathString == "pi"){
-		return M_PI;
-	}
-	
-	$problem = trim($problem);
-	$problem = ereg_replace ('[^0-9\+-\*\/\(\)]', '', $problem;
-	$compute = create_function("", "return (" . $problem . ");" );
-	return 0 + $compute();
+function calculate( $mathString ) {
+
+    $mathString = trim($mathString);
+    $mathString = preg_replace ('[^0-9\+-\*\/\(\) ]', '', $mathString);
+    $compute = create_function("", "return (" . $mathString . ");" );
+    return 0 + $compute();
 
 }
-
-// Metric: Meters
 
 function meterstofeet($meters, $echo = true){
 	$m = $meters;
@@ -117,19 +112,16 @@ function meterstokilometers($meters, $echo = true){
 	$m = $meters;
 	$Kilo = $m*0.1;
 	$data = $Kilo;
-	if($echo == true)
-	{
+	if($echo == true){
 		echo $data;
 	} else {
 		return $data;
 	}
 }
 
-//Metric: Grams
-
 function gramstopounds($grams, $echo = true){
 	$g = $grams;
-	$pounds = $m*0.00220462;
+	$pounds = $g*0.00220462;
 	$data = $pounds;
 	if($echo == true)
 	{
@@ -141,7 +133,7 @@ function gramstopounds($grams, $echo = true){
 
 function gramstoounce($grams, $echo = true){
 	$g = $grams;
-	$pounds = $m*0.035274;
+	$pounds = $g*0.035274;
 	$data = $pounds;
 	if($echo == true)
 	{
