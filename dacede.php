@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html>
 <head>
-	<title>Wave</title>
+	<title>Wave - What the internet is listening to</title>
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
 	<script src="http://code.jquery.com/jquery-1.9.1.js"></script>
@@ -27,9 +27,9 @@
 		});
 	});
 </script>
-<script type="text/javascript" src="http://stratus.sc/stratus.js"></script>
 </head>
 <?php
+// Start the motherfucking session!
 session_start();
 session_regenerate_id(true); 
 $user = $_SESSION['user'];
@@ -146,10 +146,11 @@ height: 30px;
 	if(!$user){
 	?>
 	<button type="button" class="btn btn-success btn-lg" data-toggle="modal" data-target="#login">Sign In</button>
-	<button type="button" class="btn btn-primary btn-lg" data-toggle="modal" data-target="#register">Sign Up</button>
+	<button type="button" class="btn btn-primary btn-lg" data-toggle="modal" data-target="#register">Sign Up</button><br />
 	<?php 
 	}
 	?>
+	
 	<a href='?genre=Pop'><span class="label label-default">Pop</span></a>
 	<a href='?genre=Electronic'><span class="label label-success">Electronic</span></a>
 	<a href='?genre=Hip-hop'><span class="label label-info">Hip-Hop</span></a><br />
@@ -167,21 +168,24 @@ height: 30px;
 	<table>
 	<tr>
 	<?php
+	// Require some fucking important files
 	require("connect.php");
 	require("PasswordHash.php");
+	$page = $_SERVER['PHP_SELF'];
 	$date = date("M d, Y");
 	error_reporting(E_ALL);
 	ini_set('display_errors', 1);
+	// avoid that fucking array error
 	$signup = array_key_exists('signup', $_POST) ? $_POST['signup'] : null;
 	if($signup){
 		$username = strip_tags($_POST['username']);
 		$email = strip_tags($_POST['email']);
 		$password = strip_tags($_POST['password']);
-			
+		//Hash the fucking password
 		$passHasher = new PasswordHash(8, FALSE);
 		$hash = $passHasher->HashPassword($password);
 		
-			
+		// Check if that fucking username is taken
 		$sql = "SELECT * FROM Users WHERE username='$username'";			
 		$rs=$mysqli->query($sql);
  
@@ -189,8 +193,9 @@ height: 30px;
 		trigger_error('Wrong SQL: ' . $sql . ' Error: ' . $mysqli->error, E_USER_ERROR);
 		} else {
 		$rows_returned = $rs->num_rows;
+		// If $rows_returned = fucking 0, continue.
 		if($rows_returned == 0){
-				
+		// Check if the fucking email has already been fucking used by another fucking user	
 		$sql2 = "SELECT * FROM Users WHERE email='$email'";			
 			$rs=$mysqli->query($sql2);
 	 
@@ -198,6 +203,7 @@ height: 30px;
 			trigger_error('Wrong SQL: ' . $sql2 . ' Error: ' . $mysqli->error, E_USER_ERROR);
 			} else {
 			$rows_returned = $rs->num_rows;
+			// if $rows_returned = 0, you're golden!
 			if($rows_returned == 0){
 						
 				$sql3 = "INSERT INTO Users (id, username, email, password, date) VALUES ('', '$username', '$email', '$hash', '$date')";
@@ -207,6 +213,7 @@ height: 30px;
 				} else {
 				$last_inserted_id = $mysqli->insert_id;
 				$affected_rows = $mysqli->affected_rows;
+				// It fucking worked!
 				echo "Successfully Registered!";
 				}	
 
@@ -228,10 +235,11 @@ height: 30px;
 		$username = isset($_POST['username']) ? $_POST['username'] : '';
 		$password = isset($_POST['password']) ? $_POST['password'] : '';
 		$passHasher = new PasswordHash(8, FALSE);
+		// Hash the fucking password
 		$hash = $passHasher->HashPassword($password);
+		// Check if user even fucking exists
 		$sql= "SELECT * FROM Users WHERE username='$username'";
 		$rs=$mysqli->query($sql);
-		 
 		if($rs === false) {
 		  trigger_error('Wrong SQL: ' . $sql . ' Error: ' . $mysqli->error, E_USER_ERROR);
 		} else {
@@ -239,10 +247,13 @@ height: 30px;
 		if($rows_returned == 1){
 		$rs->data_seek(0);
 		while($row = $rs->fetch_assoc()){
+			// Get the fucking password and check it against the fucking hash
 			$pass = $row['password'];
 			$checked = $passHasher->CheckPassword($password, $pass);
 			if ($checked) {
 			    echo "You have been signed in!";
+			    header("LOCATION: $page");
+			    // Create a fucking session!
 			    
 			    $_SESSION['user'] = $row['username'];
 			    $_SESSION['id'] = $row['id'];
@@ -262,7 +273,11 @@ height: 30px;
 
 	$logout = array_key_exists('logout', $_POST) ? $_POST['logout'] : null;
 	if($logout){
+		// Logout message
 		echo "You have been logged out!";
+		// reload the fucking page
+		header("LOCATION: $page");
+		// Destroy the fucking session
 		session_destroy();
 	}
 
@@ -271,10 +286,12 @@ height: 30px;
 		$url = stripslashes(strip_tags($_POST['url']));
 		$video = stripslashes(strip_tags($_POST['video']));
 		$genre = stripslashes(strip_tags($_POST['genre']));
-
+		// Currently supports soundcloud
 		if ( 'soundcloud.com' == parse_url($url, PHP_URL_HOST) ){
 			$url = urlencode($url);
+			// Get the json data from soundcloud
 			$string = file_get_contents("http://soundcloud.com/oembed?format=json&url=$url&iframe=true");
+			// Decode that motherfucker
 			$json = json_decode($string,true);
 			$title =  mysqli_real_escape_string($mysqli, strip_tags($json['title']));
 			$desc = mysqli_real_escape_string($mysqli, strip_tags($json['description']));
@@ -290,7 +307,7 @@ height: 30px;
 			} else {
 			$rows_returned = $rs->num_rows;
 			if($rows_returned == 0){
-
+				// Insert that shit!
 				$sql2 = "INSERT INTO Content (id, userid, username, title, description, thumb, author, aurl, url, video, genre, score, date) VALUES ('', '$id', '$user', '$title', '$desc', '$thumb', '$author', '$aurl', '$url', '$video', '$genre', '1', '$date')";
 
 				if($mysqli->query($sql2) === false) {
@@ -324,45 +341,56 @@ height: 30px;
 			if($rows_returned == 1){
 				$rs->data_seek(0);
 				while($row = $rs->fetch_assoc()){
-					$postid = $row['id'];
-					$userid = $row['userid'];
-					$username = $row['username'];
-					$title = $row['title'];
-					$desc = $row['description'];
-					$thumb = $row['thumb'];
-					$author = $row['author'];
-					$aurl = $row['aurl'];
-					$genre = $row['genre'];
-					$score = $row['score'];
-					$url = $row['url'];
-					$_SESSION['url'] = $url;
-					?>
+				$postid = $row['id'];
+				$userid = $row['userid'];
+				$username = $row['username'];
+				$title = $row['title'];
+				$desc = $row['description'];
+				$thumb = $row['thumb'];
+				$author = $row['author'];
+				$aurl = $row['aurl'];
+				$genre = $row['genre'];
+				$score = $row['score'];
+				$url = $row['url'];
+				$video = $row['video'];
+				$_SESSION['url'] = $url;
+				?>
 					<table>
 					<tr>
-						<td><img src="<?php echo $thumb; ?>" height="100px" width="100px"></td>
-						<td width='100%'><h4><span class="label label-success"><?php echo $score; ?></span> <?php echo $title; ?></h4><br />
+					<td><img src="<?php echo $thumb; ?>" height="100px" width="100px"></td>
+					<td width='100%'><h4><span class="label label-success"><?php echo $score; ?></span> <?php echo $title; ?></h4><br />
 						Submitted By <?php echo $username; ?><br />
-						By <?php echo "<a target='_blank' href='$aurl'>$author</a>"; ?>
-						<?php 
-						if($user){			
-						?>
+					By <?php echo "<a target='_blank' href='$aurl'>$author</a>"; ?>
+					<?php 
+					if($user){			
+					?>
 
-						<form action="menu1.php" target="like" method="post">
-						<input type='submit' name='like' value='Like' class='btn btn-success btn-xs'>
-						<input type='hidden' name='id' value="<?php echo $id; ?>">
-						<input type='hidden' name='user' value="<?php echo $user; ?>">				
-						<input type='hidden' name='postid' value="<?php echo $postid; ?>">				
-						<input type='hidden' name='score' value="<?php echo $score; ?>">				
-						</form>
-					
-						<iframe style='display:none' name="like" target="like" src="menu1.php"></iframe>
-						<?php
-						}
-						?>
-						</td>
+					<form action="menu1.php" target="like" method="post">
+					<input type='submit' name='like' value='Like' class='btn btn-success btn-xs'>
+					<input type='hidden' name='id' value="<?php echo $id; ?>">
+					<input type='hidden' name='user' value="<?php echo $user; ?>">				
+					<input type='hidden' name='postid' value="<?php echo $postid; ?>">				
+					<input type='hidden' name='score' value="<?php echo $score; ?>">
+					<br />
+					<br />
+					</form>
+					<iframe style='display:none' name="like" target="like" src="menu1.php"></iframe>
+
+					</td>
 					</tr>
 					</table>
 					<?php
+					}
+					?>
+					<?php
+					if($desc){
+						$description =  preg_replace('@(https?://([-\w\.]+)+(:\d+)?(/([\w/_\.]*(\?\S+)?)?)?)@', '<a target="_blank" href="$1">$1</a>', $desc);
+						echo "$description<br />";
+						
+					}
+					if($video){
+						echo "<a href='$video'>Music Video</a><br />";
+					}
 				}
 			}
 			else
@@ -686,12 +714,13 @@ height: 30px;
 $sessionurl = array_key_exists('url', $_SESSION) ? $_SESSION['url'] : null;
 if($sessionurl){
 ?>
-	<iframe width='100%' height='125px' scrolling='no' frameborder='no' src="https://w.soundcloud.com/player/?url=<?php echo urlencode($sessionurl); ?>"></iframe>
+	<iframe width='100%' height='100px' scrolling='no' frameborder='no' src="https://w.soundcloud.com/player/?url=<?php echo urlencode($sessionurl); ?>"></iframe>
 </nav>
 <?php
 }
 ?>
 <?php
+$rs->free();
 $mysqli->close();
 ?>
 </body>
