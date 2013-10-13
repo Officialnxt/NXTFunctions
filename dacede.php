@@ -25,18 +25,16 @@
 		    	$('.modal').modal('hide');
 		    	return false;
 		});
-
-});
-
 	});
 </script>
+<script type="text/javascript" src="http://stratus.sc/stratus.js"></script>
+</head>
 <?php
 session_start();
 session_regenerate_id(true); 
 $user = $_SESSION['user'];
 $id = $_SESSION['id'];
 ?>
-</head>
 <style>
 body {
 padding-top: 70px; 
@@ -44,8 +42,8 @@ padding-bottom: 70px;
 }
 .navbar{
 background-color: #FFFFFF;
-border-bottom: solid 1px #E0E0E0;
-border-top: solid 1px #E0E0E0;
+border-bottom: solid 1px #F0F0F0 ;
+border-top: solid 1px #F0F0F0 ;
 }
 .btn{
 padding-top: 5px;
@@ -64,6 +62,12 @@ padding-bottom: 5px;
 	display: none;
 }
 }
+
+.like {
+height: 30px;
+}
+
+
 </style>
 <body>
 
@@ -122,11 +126,19 @@ padding-bottom: 5px;
 	<?php
 	}else{
 	?>
-	<td class="sidebar"><b>Genres</b></td>
+	<td class="sidebar">Genres</td>
 	<?php
 	}
 	?>
-	<td width='75%'><b>Hot</b></td>
+	<td width='75%'>
+	<?php
+	if($_GET['id']){
+		echo "Play";
+	}
+	else
+		echo "Hot";
+	?>
+	</td>
 </tr>
 <tr>
 	<td class="sidebar">
@@ -138,13 +150,18 @@ padding-bottom: 5px;
 	<?php 
 	}
 	?>
-	<span class="label label-default">Pop</span>
-	<span class="label label-success">Electronic</span>
-	<span class="label label-info">Hip-Hop</span><br />
-	<span class="label label-warning">Rock</span>
-	<span class="label label-danger">Metal</span>
-	<span class="label label-default">All</span>
-	<span class="label label-success">New</span>
+	<a href='?genre=Pop'><span class="label label-default">Pop</span></a>
+	<a href='?genre=Electronic'><span class="label label-success">Electronic</span></a>
+	<a href='?genre=Hip-hop'><span class="label label-info">Hip-Hop</span></a><br />
+	<a href='?genre=Rock'><span class="label label-warning">Rock</span></a>
+	<a href='?genre=Metal'><span class="label label-danger">Metal</span></a>
+	<a href='?genre=Comedy'><span class="label label-default">Comedy</span></a><br />
+	<a href='?genre=Alternative'><span class="label label-success">Alternative</span></a>
+	<a href='?genre=Progressive'><span class="label label-info">Progressive</span></a>
+	<a href='?genre=Punk'><span class="label label-warning">Punk</span></a><br />
+	<a href='?genre=Blues'><span class="label label-default">Blues</span></a>
+	<a href='?genre=Podcast'><span class="label label-success">Podcast</span></a>
+	<a href='?genre=Nsfw'><span class="label label-danger">NSFW</span></a>
 	</td>
 	<td>
 	<table>
@@ -256,13 +273,14 @@ padding-bottom: 5px;
 		$genre = stripslashes(strip_tags($_POST['genre']));
 
 		if ( 'soundcloud.com' == parse_url($url, PHP_URL_HOST) ){
+			$url = urlencode($url);
 			$string = file_get_contents("http://soundcloud.com/oembed?format=json&url=$url&iframe=true");
 			$json = json_decode($string,true);
-			$title =  $json['title'];
-			$desc = $json['description'];
-			$thumb = $json['thumbnail_url'];
-			$author = $json['author_name'];
-			$aurl = $json['author_url'];
+			$title =  mysqli_real_escape_string($mysqli, strip_tags($json['title']));
+			$desc = mysqli_real_escape_string($mysqli, strip_tags($json['description']));
+			$thumb = mysqli_real_escape_string($mysqli, strip_tags($json['thumbnail_url']));
+			$author = mysqli_real_escape_string($mysqli, strip_tags($json['author_name']));
+			$aurl = mysqli_real_escape_string($mysqli, strip_tags($json['author_url']));
 			$sql = "SELECT * FROM Content WHERE url='$url'";			
 			
 			$rs=$mysqli->query($sql);
@@ -273,10 +291,10 @@ padding-bottom: 5px;
 			$rows_returned = $rs->num_rows;
 			if($rows_returned == 0){
 
-				$sql2 = "INSERT INTO Content (id, userid, username, title, description, thumb, author, aurl, url, video, genre, score, date) VALUES ('', '$id', '$user', '$title', '$desc', '$thumb', '$author', '$aurl', '$url', '$video', '$genre', '0', '$date')";
+				$sql2 = "INSERT INTO Content (id, userid, username, title, description, thumb, author, aurl, url, video, genre, score, date) VALUES ('', '$id', '$user', '$title', '$desc', '$thumb', '$author', '$aurl', '$url', '$video', '$genre', '1', '$date')";
 
 				if($mysqli->query($sql2) === false) {
-				trigger_error('Wrong SQL: ' . $sql2 . ' Error: ' . $conn->error, E_USER_ERROR);
+				trigger_error('Wrong SQL: ' . $sql2 . ' Error: ' . $mysqli->error, E_USER_ERROR);
 				} else {
 				$last_inserted_id = $mysqli->insert_id;
 				$affected_rows = $mysqli->affected_rows;
@@ -294,7 +312,67 @@ padding-bottom: 5px;
 
 		
 	}
-	$sql = "SELECT * FROM (SELECT * FROM Content WHERE date='$date') AS wave ORDER BY score DESC LIMIT 15";
+
+	$getid = array_key_exists('id', $_GET) ? $_GET['id'] : null;
+	if($getid){
+		$sql = "SELECT * FROM Content WHERE id='$getid'";
+		$rs=$mysqli->query($sql);
+		if($rs === false) {
+			trigger_error('Wrong SQL: ' . $sql . ' Error: ' . $mysqli->error, E_USER_ERROR);
+		} else {
+			$rows_returned = $rs->num_rows;
+			if($rows_returned == 1){
+				$rs->data_seek(0);
+				while($row = $rs->fetch_assoc()){
+					$postid = $row['id'];
+					$userid = $row['userid'];
+					$username = $row['username'];
+					$title = $row['title'];
+					$desc = $row['description'];
+					$thumb = $row['thumb'];
+					$author = $row['author'];
+					$aurl = $row['aurl'];
+					$genre = $row['genre'];
+					$score = $row['score'];
+					$url = $row['url'];
+					$_SESSION['url'] = $url;
+					?>
+					<table>
+					<tr>
+						<td><img src="<?php echo $thumb; ?>" height="100px" width="100px"></td>
+						<td width='100%'><h4><span class="label label-success"><?php echo $score; ?></span> <?php echo $title; ?></h4><br />
+						Submitted By <?php echo $username; ?><br />
+						By <?php echo "<a target='_blank' href='$aurl'>$author</a>"; ?>
+						<?php 
+						if($user){			
+						?>
+
+						<form action="menu1.php" target="like" method="post">
+						<input type='submit' name='like' value='Like' class='btn btn-success btn-xs'>
+						<input type='hidden' name='id' value="<?php echo $id; ?>">
+						<input type='hidden' name='user' value="<?php echo $user; ?>">				
+						<input type='hidden' name='postid' value="<?php echo $postid; ?>">				
+						<input type='hidden' name='score' value="<?php echo $score; ?>">				
+						</form>
+					
+						<iframe style='display:none' name="like" target="like" src="menu1.php"></iframe>
+						<?php
+						}
+						?>
+						</td>
+					</tr>
+					</table>
+					<?php
+				}
+			}
+			else
+				echo "Post not found!";
+		}
+	}else{
+
+	$genrearray = array_key_exists('genre', $_GET) ? $_GET['genre'] : null;
+	if($genrearray){
+	$sql = "SELECT * FROM (SELECT * FROM Content WHERE genre='$genrearray') AS wave ORDER BY score DESC LIMIT 15";
 	$rs=$mysqli->query($sql);
 	if($rs === false) {
 		trigger_error('Wrong SQL: ' . $sql . ' Error: ' . $mysqli->error, E_USER_ERROR);
@@ -303,6 +381,7 @@ padding-bottom: 5px;
 		if($rows_returned >= 1){
 			$rs->data_seek(0);
 			while($row = $rs->fetch_assoc()){
+			$postid = $row['id'];
 			$userid = $row['userid'];
 			$username = $row['username'];
 			$title = $row['title'];
@@ -317,13 +396,34 @@ padding-bottom: 5px;
 				<table class='table'>
 				<tr>
 					<td>
-					<img class='img-thumbnail' src="<?php echo $thumb; ?>" height="75" width="75">
+					<img src="<?php echo $thumb; ?>" height="75" width="75"><br />
 					</td>
 					<td width='100%'>
 					<span class="label label-success"><?php echo $score; ?></span>					
-					<?php echo $title; ?><br />
-					Submitted By <?php echo $username; ?> | <?php echo $genre; ?><br />
-					By <a target='_blank' href="<?php echo $aurl; ?>"><?php echo $author; ?></a>
+					<?php echo "<a href='?id=$postid'>$title</a>"; ?><br />
+					Submitted By <?php echo $username; ?> | <?php 
+					if($genre == "NSFW"){
+						echo "<span class='label label-danger'>NSFW</span>";
+					}else
+					echo $genre; 
+					?><br />
+					By <a target='_blank' href="<?php echo $aurl; ?>"><?php echo $author; ?></a><br />
+					<?php 
+					if($user){			
+					?>
+
+					<form action="menu1.php" target="like" method="post">
+					<input type='submit' name='like' value='Like' class='btn btn-success btn-xs'>
+					<input type='hidden' name='id' value="<?php echo $id; ?>">
+					<input type='hidden' name='user' value="<?php echo $user; ?>">				
+					<input type='hidden' name='postid' value="<?php echo $postid; ?>">				
+					<input type='hidden' name='score' value="<?php echo $score; ?>">				
+					</form>
+					
+					<iframe style='display:none' name="like" target="like" src="menu1.php"></iframe>
+					<?php
+					}
+					?>
 					</td>
 				</tr>
 				</table>
@@ -333,6 +433,66 @@ padding-bottom: 5px;
 		else
 			echo "No posts!";
 	}
+	}else{	
+
+	$sql = "SELECT * FROM (SELECT * FROM Content WHERE genre!='NSFW') AS wave ORDER BY score DESC LIMIT 15";
+	$rs=$mysqli->query($sql);
+	if($rs === false) {
+		trigger_error('Wrong SQL: ' . $sql . ' Error: ' . $mysqli->error, E_USER_ERROR);
+	} else {
+		$rows_returned = $rs->num_rows;
+		if($rows_returned >= 1){
+			$rs->data_seek(0);
+			while($row = $rs->fetch_assoc()){
+			$postid = $row['id'];
+			$userid = $row['userid'];
+			$username = $row['username'];
+			$title = $row['title'];
+			$desc = $row['description'];
+			$thumb = $row['thumb'];
+			$author = $row['author'];
+			$aurl = $row['aurl'];
+			$genre = $row['genre'];
+			$score = $row['score'];
+			
+				?>
+				<table class='table'>
+				<tr>
+					<td>
+					<img src="<?php echo $thumb; ?>" height="75" width="75"><br />
+					</td>
+					<td width='100%'>
+					<span class="label label-success"><?php echo $score; ?></span>					
+					<?php echo "<a href='?id=$postid'>$title</a>"; ?><br />
+					Submitted By <?php echo $username; ?> | <?php echo $genre; ?><br />
+					By <a target='_blank' href="<?php echo $aurl; ?>"><?php echo $author; ?></a><br />
+					<?php 
+					if($user){			
+					?>
+
+					<form action="menu1.php" target="like" method="post">
+					<input type='submit' name='like' value='Like' class='btn btn-success btn-xs'>
+					<input type='hidden' name='id' value="<?php echo $id; ?>">
+					<input type='hidden' name='user' value="<?php echo $user; ?>">				
+					<input type='hidden' name='postid' value="<?php echo $postid; ?>">				
+					<input type='hidden' name='score' value="<?php echo $score; ?>">				
+					</form>
+					
+					<iframe style='display:none' name="like" target="like" src="menu1.php"></iframe>
+					<?php
+					}
+					?>
+					</td>
+				</tr>
+				</table>
+			<?php
+			}
+		}
+		else
+			echo "No posts!";
+	}
+	}
+	}
 		//$string = file_get_contents("http://soundcloud.com/oembed?format=json&url=https://soundcloud.com/variouscruelties/neon-truth-2&iframe=true");
 		?>
 		</td>	
@@ -341,7 +501,7 @@ padding-bottom: 5px;
 	</td>
 </tr>
 </table>
-  <div class="modal fade" id="login" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+<div class="modal fade" id="login" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
@@ -428,6 +588,49 @@ padding-bottom: 5px;
           <h4 class="modal-title"><?php echo $user; ?></h4>
         </div>
         <div class="modal-body">
+	<?php
+	$query = "SELECT * FROM (SELECT * FROM Content WHERE username='$user') AS wave ORDER BY id DESC LIMIT 15";
+	$rs=$mysqli->query($query);
+	if($rs === false) {
+		trigger_error('Wrong SQL: ' . $query . ' Error: ' . $mysqli->error, E_USER_ERROR);
+	} else {
+		$rows_returned = $rs->num_rows;
+		if($rows_returned >= 1){
+			$rs->data_seek(0);
+			while($row = $rs->fetch_assoc()){
+				$postid = $row['id'];
+				$userid = $row['userid'];
+				$username = $row['username'];
+				$title = $row['title'];
+				$desc = $row['description'];
+				$thumb = $row['thumb'];
+				$author = $row['author'];
+				$aurl = $row['aurl'];
+				$genre = $row['genre'];
+				$score = $row['score'];
+				?>
+
+			<table class='table'>
+			<tr>
+				<td>
+				<img src="<?php echo $thumb; ?>" height="75" width="75"><br />
+				</td>
+				<td width='100%'>
+				<span class="label label-success"><?php echo $score; ?></span>					
+				<?php echo $title; ?><br />
+				Submitted By <?php echo $username; ?> | <?php echo $genre; ?><br />
+				By <a target='_blank' href="<?php echo $aurl; ?>"><?php echo $author; ?></a><br />
+				</td>
+			</tr>
+			</table>
+
+			<?php
+			}
+		}
+		else
+			echo "no posts";
+	}
+	?>
         </div>
       </div>
     </div>
@@ -448,7 +651,7 @@ padding-bottom: 5px;
 	  </div>
 	  <div class="form-group">
 	    <label for="video">Music Video</label>
-	    <input type="email" value="" class="form-control" name="video" id="video" placeholder="Music Video(Optional)">
+	    <input type="text" value="" class="form-control" name="video" id="video" placeholder="Music Video(Optional)">
 	  </div>
 	  <div class="form-group">
 	    <label for="genre">Genre</label>
@@ -458,12 +661,20 @@ padding-bottom: 5px;
 	  <option>Hip-Hop</option>
 	  <option>Rock</option>
 	  <option>Metal</option>
+	  <option>Comedy</option>
+	  <option>Jazz</option>
+	  <option>Alternative</option>
+          <option>Progressive</option>
+	  <option>Punk</option>
+	  <option>Blues</option>
+	  <option>Podcast</option>
+	  <option>NSFW</option>
 	</select>
 	  </div>
 	  <div class="form-group">
 	    <p class="help-block">We currently only support soundcloud.</p>
 	  </div>
-	  <input type="submit" name='submit' class="btn btn-success" value="Sign Up">
+	  <input type="submit" name='submit' class="btn btn-success" value="Submit">
 	</form>
 	</div>
       </div>
@@ -471,6 +682,17 @@ padding-bottom: 5px;
   </div>
 
 <nav class="navbar navbar-default navbar-fixed-bottom" role="navigation">
+<?php
+$sessionurl = array_key_exists('url', $_SESSION) ? $_SESSION['url'] : null;
+if($sessionurl){
+?>
+	<iframe width='100%' height='125px' scrolling='no' frameborder='no' src="https://w.soundcloud.com/player/?url=<?php echo urlencode($sessionurl); ?>"></iframe>
 </nav>
+<?php
+}
+?>
+<?php
+$mysqli->close();
+?>
 </body>
 </html>
