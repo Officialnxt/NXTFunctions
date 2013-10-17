@@ -29,6 +29,8 @@
 </script>
 </head>
 <?php
+//Some shit I found on daniwed // Turns on the fucking output buffer
+ob_start();
 // Start the motherfucking session!
 session_start();
 session_regenerate_id(true); 
@@ -37,7 +39,7 @@ $id = $_SESSION['id'];
 ?>
 <style>
 body {
-padding-top: 70px; 
+padding-top: 80px; 
 padding-bottom: 70px;
 }
 .navbar{
@@ -95,7 +97,6 @@ height: 30px;
 	}
       ?>
     </div>
-
 <div class="collapse navbar-collapse navbar-ex1-collapse">
     <ul class="nav navbar-nav">
       <?php
@@ -109,6 +110,9 @@ height: 30px;
       <li><a href="#" data-toggle="modal" data-target="#user"><?php echo $user; ?></a></li>
       <li><a href="#" data-toggle="modal" data-target="#submit">Submit</a></li>
       <li><a href="#" data-toggle="modal" data-target="#logout">Logout</a></li>
+      <li><form class="navbar-form navbar-right" role="search" method="get">
+        <input value="<?php echo $_GET['search']; ?>" type="text" class="form-control" name='search' id='search' style="width: 100%" placeholder="Search">
+    </form></li>
       <?php
 	}
       ?>
@@ -122,11 +126,11 @@ height: 30px;
 	<?php
 	if(!$user){
 	?>
-	<td class="sidebar"><b>Sign Up | Sign In</b></td>
+	<td class="sidebar">Sign Up | Sign In</td>
 	<?php
 	}else{
 	?>
-	<td class="sidebar">Genres</td>
+	<td class="sidebar">Search</td>
 	<?php
 	}
 	?>
@@ -134,6 +138,8 @@ height: 30px;
 	<?php
 	if($_GET['id']){
 		echo "Play";
+	}elseif($_GET['new']){
+		echo "New";
 	}
 	else
 		echo "Hot";
@@ -149,8 +155,14 @@ height: 30px;
 	<button type="button" class="btn btn-primary btn-lg" data-toggle="modal" data-target="#register">Sign Up</button><br />
 	<?php 
 	}
+	if($user){
+	?>	
+	<form class="form-horizontal" role="search" method='get'>
+        <input type="text" class="form-control" name='search' id='search' style="width: 100%" placeholder="Search" value="<?php echo $_GET['search']; ?>">
+    	</form><br />
+	<?php
+	}
 	?>
-	
 	<a href='?genre=Pop'><span class="label label-default">Pop</span></a>
 	<a href='?genre=Electronic'><span class="label label-success">Electronic</span></a>
 	<a href='?genre=Hip-hop'><span class="label label-info">Hip-Hop</span></a><br />
@@ -162,15 +174,53 @@ height: 30px;
 	<a href='?genre=Punk'><span class="label label-warning">Punk</span></a><br />
 	<a href='?genre=Blues'><span class="label label-default">Blues</span></a>
 	<a href='?genre=Podcast'><span class="label label-success">Podcast</span></a>
-	<a href='?genre=Nsfw'><span class="label label-danger">NSFW</span></a>
+	<a href='?genre=Nsfw'><span class="label label-danger">NSFW</span></a><br /><br />
+	
+
+	<?php
+		require("connect.php");
+		$new = array_key_exists('new', $_GET) ? $_GET['new'] : null;
+		if($user){
+		echo "Saved<br />";
+		$ssql = "SELECT * FROM (SELECT * FROM Saved WHERE username='$user') AS saved ORDER BY id DESC LIMIT 10";
+		$rs=$mysqli->query($ssql);
+		if($rs === false) {
+			trigger_error('Wrong SQL: ' . $ssql . ' Error: ' . $mysqli->error, E_USER_ERROR);
+		} else {
+			$rows_returned = $rs->num_rows;
+			if($rows_returned >= 1){
+
+			$rs->data_seek(0);
+			while($row = $rs->fetch_assoc()){
+			$pid = $row['id'];
+			$userid = $row['userid'];
+			$username = $row['username'];
+			$postid = $row['postid'];
+			$title = $row['title'];
+			$author = $row['author'];
+			$aurl = $row['aurl'];
+			$date = $row['date'];
+			?>
+			
+			<a href="?id=<?php echo $postid; ?>"><?php echo $title; ?></a><hr />
+	
+			<?php
+			}
+
+			}
+			else
+				echo "No saved posts";
+			
+		}
+	}
+	?>
 	</td>
 	<td>
 	<table>
 	<tr>
 	<?php
 	// Require some fucking important files
-	require("connect.php");
-	require("PasswordHash.php");
+	require("lib/PasswordHash.php");
 	$page = $_SERVER['PHP_SELF'];
 	$date = date("M d, Y");
 	error_reporting(E_ALL);
@@ -273,12 +323,12 @@ height: 30px;
 
 	$logout = array_key_exists('logout', $_POST) ? $_POST['logout'] : null;
 	if($logout){
+
+		session_destroy();
 		// Logout message
 		echo "You have been logged out!";
 		// reload the fucking page
 		header("LOCATION: $page");
-		// Destroy the fucking session
-		session_destroy();
 	}
 
 	$submit = array_key_exists('submit', $_POST) ? $_POST['submit'] : null;
@@ -329,6 +379,89 @@ height: 30px;
 
 		
 	}
+	$search = mysqli_real_escape_string($mysqli,array_key_exists('search', $_GET) ? $_GET['search'] : null);
+	if($search){
+	?>
+		<h4>Results For <?php echo stripslashes($search); ?></h4>
+		<?php
+		//SELECT * FROM table WHERE MATCH (field1, field2, field3, field4) 
+                  //AGAINST ('keyword' IN BOOLEAN MODE)
+		$sql = "
+		SELECT *, MATCH(title, username) AGAINST ('$search' IN BOOLEAN MODE) AS relevance 
+		FROM `Content`
+		WHERE MATCH(title, username) AGAINST ('$search' IN BOOLEAN MODE)
+		ORDER BY relevance DESC
+		LIMIT 15
+            	";
+		$rs=$mysqli->query($sql);
+		if($rs === false) {
+			trigger_error('Wrong SQL: ' . $sql . ' Error: ' . $mysqli->error, E_USER_ERROR);
+		} else {
+			$rows_returned = $rs->num_rows;
+			if($rows_returned >= 1){
+
+			$rs->data_seek(0);
+			while($row = $rs->fetch_assoc()){
+			$postid = $row['id'];
+			$userid = $row['userid'];
+			$username = $row['username'];
+			$title = $row['title'];
+			$desc = $row['description'];
+			$thumb = $row['thumb'];
+			$author = $row['author'];
+			$aurl = $row['aurl'];
+			$genre = $row['genre'];
+			$score = $row['score'];
+			
+				?>
+				<table class='table'>
+				<tr>
+					<td>
+					<img src="<?php echo $thumb; ?>" height="75" width="75"><br />
+					</td>
+					<td width='100%'>
+					<span class="label label-success"><?php echo $score; ?></span>					
+					<?php echo "<a href='?id=$postid'>$title</a>"; ?><br />
+					Submitted By <?php echo $username; ?> | <?php 
+					if($genre == "NSFW"){
+						echo "<span class='label label-danger'>NSFW</span>";
+					}else
+					echo $genre; 
+					?><br />
+					By <a target='_blank' href="<?php echo $aurl; ?>"><?php echo $author; ?></a><br />
+					<?php 
+					if($user){			
+					?>
+
+					<form action="menu1.php" target="like" method="post">
+					<input type='submit' name='like' value='Like' class='btn btn-success btn-xs'>
+					<input type='submit' name='save' value='Save' class='btn btn-primary btn-xs'>
+					<input type='hidden' name='id' value="<?php echo $id; ?>">
+					<input type='hidden' name='user' value="<?php echo $user; ?>">				
+					<input type='hidden' name='title' value="<?php echo $title; ?>">				
+					<input type='hidden' name='postid' value="<?php echo $postid; ?>">				
+					<input type='hidden' name='score' value="<?php echo $score; ?>">				
+					</form>
+					
+					<iframe style='display:none' name="like" target="like" src="menu1.php"></iframe>
+					<?php
+					}
+					?>
+					</td>
+				</tr>
+				</table>
+			<?php
+			}
+
+			}
+			else
+				echo "Could not find results for $search";
+		}
+		
+		?>
+	<?php
+	}
+	else{
 
 	$getid = array_key_exists('id', $_GET) ? $_GET['id'] : null;
 	if($getid){
@@ -359,20 +492,20 @@ height: 30px;
 					<tr>
 					<td><img src="<?php echo $thumb; ?>" height="100px" width="100px"></td>
 					<td width='100%'><h4><span class="label label-success"><?php echo $score; ?></span> <?php echo $title; ?></h4><br />
-						Submitted By <?php echo $username; ?><br />
-					By <?php echo "<a target='_blank' href='$aurl'>$author</a>"; ?>
+					Submitted By <?php echo $username; ?><br />
+					By <?php echo "<a target='_blank' href='$aurl'>$author</a><br />"; ?>
 					<?php 
 					if($user){			
 					?>
 
 					<form action="menu1.php" target="like" method="post">
 					<input type='submit' name='like' value='Like' class='btn btn-success btn-xs'>
+					<input type='submit' name='save' value='Save' class='btn btn-primary btn-xs'>
 					<input type='hidden' name='id' value="<?php echo $id; ?>">
 					<input type='hidden' name='user' value="<?php echo $user; ?>">				
+					<input type='hidden' name='title' value="<?php echo $title; ?>">				
 					<input type='hidden' name='postid' value="<?php echo $postid; ?>">				
-					<input type='hidden' name='score' value="<?php echo $score; ?>">
-					<br />
-					<br />
+					<input type='hidden' name='score' value="<?php echo $score; ?>">				
 					</form>
 					<iframe style='display:none' name="like" target="like" src="menu1.php"></iframe>
 
@@ -400,6 +533,10 @@ height: 30px;
 
 	$genrearray = array_key_exists('genre', $_GET) ? $_GET['genre'] : null;
 	if($genrearray){
+	if($new == "true"){
+	$sql = "SELECT * FROM (SELECT * FROM Content WHERE genre='$genrearray') AS wave ORDER BY id DESC LIMIT 15";
+	}
+	else
 	$sql = "SELECT * FROM (SELECT * FROM Content WHERE genre='$genrearray') AS wave ORDER BY score DESC LIMIT 15";
 	$rs=$mysqli->query($sql);
 	if($rs === false) {
@@ -442,8 +579,10 @@ height: 30px;
 
 					<form action="menu1.php" target="like" method="post">
 					<input type='submit' name='like' value='Like' class='btn btn-success btn-xs'>
+					<input type='submit' name='save' value='Save' class='btn btn-primary btn-xs'>
 					<input type='hidden' name='id' value="<?php echo $id; ?>">
 					<input type='hidden' name='user' value="<?php echo $user; ?>">				
+					<input type='hidden' name='title' value="<?php echo $title; ?>">				
 					<input type='hidden' name='postid' value="<?php echo $postid; ?>">				
 					<input type='hidden' name='score' value="<?php echo $score; ?>">				
 					</form>
@@ -461,8 +600,12 @@ height: 30px;
 		else
 			echo "No posts!";
 	}
-	}else{	
+	}else{
 
+	if($new == "true"){
+	$sql = "SELECT * FROM (SELECT * FROM Content WHERE genre!='NSFW') AS wave ORDER BY id DESC LIMIT 15";
+	}
+	else
 	$sql = "SELECT * FROM (SELECT * FROM Content WHERE genre!='NSFW') AS wave ORDER BY score DESC LIMIT 15";
 	$rs=$mysqli->query($sql);
 	if($rs === false) {
@@ -500,8 +643,10 @@ height: 30px;
 
 					<form action="menu1.php" target="like" method="post">
 					<input type='submit' name='like' value='Like' class='btn btn-success btn-xs'>
+					<input type='submit' name='save' value='Save' class='btn btn-primary btn-xs'>
 					<input type='hidden' name='id' value="<?php echo $id; ?>">
 					<input type='hidden' name='user' value="<?php echo $user; ?>">				
+					<input type='hidden' name='title' value="<?php echo $title; ?>">				
 					<input type='hidden' name='postid' value="<?php echo $postid; ?>">				
 					<input type='hidden' name='score' value="<?php echo $score; ?>">				
 					</form>
@@ -521,7 +666,7 @@ height: 30px;
 	}
 	}
 	}
-		//$string = file_get_contents("http://soundcloud.com/oembed?format=json&url=https://soundcloud.com/variouscruelties/neon-truth-2&iframe=true");
+	}
 		?>
 		</td>	
 	</tr>
@@ -648,7 +793,18 @@ height: 30px;
 				<?php echo $title; ?><br />
 				Submitted By <?php echo $username; ?> | <?php echo $genre; ?><br />
 				By <a target='_blank' href="<?php echo $aurl; ?>"><?php echo $author; ?></a><br />
-				</td>
+
+				<form action="menu1.php" target="like" method="post">
+				<input type='submit' name='like' value='Like' class='btn btn-success btn-xs'>
+				<input type='hidden' name='id' value="<?php echo $id; ?>">
+				<input type='hidden' name='user' value="<?php echo $user; ?>">				
+				<input type='hidden' name='postid' value="<?php echo $postid; ?>">				
+				<input type='hidden' name='score' value="<?php echo $score; ?>">				
+				</form>
+					
+				<iframe style='display:none' name="like" target="like" src="menu1.php"></iframe>
+
+			</td>
 			</tr>
 			</table>
 
@@ -714,14 +870,15 @@ height: 30px;
 $sessionurl = array_key_exists('url', $_SESSION) ? $_SESSION['url'] : null;
 if($sessionurl){
 ?>
-	<iframe width='100%' height='100px' scrolling='no' frameborder='no' src="https://w.soundcloud.com/player/?url=<?php echo urlencode($sessionurl); ?>"></iframe>
+	<iframe width='100%' height='100px' scrolling='no' frameborder='no' src="https://w.soundcloud.com/player/?url=<?php echo urlencode($sessionurl); ?>&color=e0e0e0&show_artwork=true"></iframe>
 </nav>
 <?php
 }
-?>
-<?php
+// Free up some motherfucking memory
 $rs->free();
 $mysqli->close();
+// Flushes the fucking buffer
+ob_flush();
 ?>
 </body>
 </html>
